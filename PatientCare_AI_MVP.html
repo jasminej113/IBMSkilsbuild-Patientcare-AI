@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PatientCare AI — IBM SkillsBuild MVP</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1A6FD4;--blue-lt:#EBF3FD;--blue-md:#B5D4F4;--blue-dk:#0C447C;--green:#16A34A;--radius:10px;--bg:#F5F6FA;--bg2:#fff;--bg3:#F0F2F5;--text:#111;--text2:#666;--text3:#999;--border:#E2E4E8}
+body{font-family:'IBM Plex Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.shell{display:flex;flex-direction:column;height:640px;width:900px;max-width:100%;border-radius:14px;overflow:hidden;border:1px solid var(--border);box-shadow:0 4px 32px rgba(0,0,0,.10);background:var(--bg2)}
+
+/* topbar */
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0}
+.brand{font-size:15px;font-weight:600;color:var(--blue)}
+.brand em{color:var(--text2);font-style:normal;font-weight:400}
+.watson-badge{margin-left:auto;font-size:10px;background:#054ADA;color:#fff;padding:3px 11px;border-radius:20px;letter-spacing:.3px}
+
+/* layout */
+.body{display:flex;flex:1;overflow:hidden}
+.sidebar{width:196px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:12px 0}
+.nav-label{font-size:10px;color:var(--text3);padding:10px 14px 4px;text-transform:uppercase;letter-spacing:.8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text2);border-left:2px solid transparent;transition:all .15s}
+.nav-item:hover{background:#F5F6FA;color:var(--text)}
+.nav-item.active{background:var(--blue-lt);color:var(--blue);border-left-color:var(--blue);font-weight:600}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:#22C55E;flex-shrink:0}
+
+/* main */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.panel{display:none;flex-direction:column;height:100%;overflow:hidden}
+.panel.active{display:flex}
+.ph{padding:13px 18px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0}
+.ph-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.ph-sub{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* chat */
+.chat-scroll{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.msg{display:flex;gap:8px;max-width:500px}
+.msg.u{flex-direction:row-reverse;align-self:flex-end}
+.av{width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+.av.ai{background:var(--blue);color:#fff}
+.av.u{background:#E4E6EA;color:#555;border:1px solid var(--border)}
+.bub{padding:9px 13px;border-radius:12px;font-size:12.5px;line-height:1.65}
+.bub.ai{background:#fff;border:1px solid var(--border)}
+.bub.u{background:var(--blue);color:#fff}
+.qrow{padding:0 18px 10px;display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;background:var(--bg)}
+.qbtn{font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--blue);color:var(--blue);background:#fff;cursor:pointer;transition:background .15s}
+.qbtn:hover{background:var(--blue-lt)}
+.irow{display:flex;gap:8px;padding:10px 18px;background:#fff;border-top:1px solid var(--border);flex-shrink:0}
+.cinput{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:12.5px;background:var(--bg);color:var(--text);font-family:inherit;resize:none}
+.cinput:focus{outline:none;border-color:var(--blue)}
+.sbtn{padding:8px 18px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:12.5px;cursor:pointer;font-weight:600}
+.sbtn:hover{background:var(--blue-dk)}
+
+/* routing */
+.route-scroll{flex:1;overflow-y:auto;padding:14px 18px;background:var(--bg)}
+.route-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.rcard{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s}
+.rcard:hover{border-color:var(--blue)}
+.rcard.selected{border-color:var(--blue);background:var(--blue-lt)}
+.rcard-icon{font-size:18px;margin-bottom:5px}
+.rcard-title{font-size:12.5px;font-weight:600;margin-bottom:3px}
+.rcard-desc{font-size:11px;color:var(--text2);line-height:1.5}
+.route-result{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:none}
+.route-result.show{display:block}
+.route-result h4{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:10px}
+.severity-pill{display:inline-block;font-size:11px;padding:3px 11px;border-radius:20px;font-weight:600;margin-bottom:10px}
+.sev-low{background:#DCFCE7;color:#166534}
+.sev-mod{background:#FEF9C3;color:#854D0E}
+.sev-high{background:#FEE2E2;color:#991B1B}
+.sev-crit{background:#DC2626;color:#fff}
+
+/* appointment */
+.appt-scroll{flex:1;overflow-y:auto;padding:16px 18px;background:var(--bg)}
+.appt-steps{display:flex;margin-bottom:16px}
+.step-item{flex:1;text-align:center;font-size:11px;padding:7px 4px;color:var(--text3);border-bottom:2px solid var(--border)}
+.step-item.done{color:var(--blue);border-bottom-color:var(--blue)}
+.step-item.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:11px;color:var(--text2);font-weight:600}
+.fld input,.fld select{padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;background:#fff;color:var(--text);font-family:inherit}
+.pbtn{padding:9px 22px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer}
+.pbtn:hover{background:var(--blue-dk)}
+.confirm-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:none}
+.confirm-card.show{display:block}
+.confirm-card h4{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:12px}
+.confirm-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.confirm-row:last-child{border:none}
+.confirm-key{color:var(--text2)}
+.confirm-val{font-weight:600;text-align:right}
+.ref-badge{margin-top:12px;background:var(--blue-lt);border:1px solid var(--blue-md);border-radius:8px;padding:9px 13px;font-size:11.5px;color:var(--blue-dk);text-align:center}
+
+/* dashboard */
+.dash-scroll{flex:1;overflow-y:auto;padding:16px 18px;background:var(--bg)}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:13px}
+.stat-lbl{font-size:11px;color:var(--text2);margin-bottom:4px}
+.stat-val{font-size:24px;font-weight:700;color:var(--blue)}
+.agent-list{display:flex;flex-direction:column;gap:8px}
+.agent-row{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:12px}
+.agent-icon{font-size:20px}
+.agent-info{flex:1}
+.agent-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.agent-desc{font-size:11.5px;color:var(--text2)}
+.agent-status{font-size:11px;padding:3px 11px;border-radius:20px;background:#DCFCE7;color:#166534;font-weight:600}
+.ibm-note{margin-top:14px;padding:11px 14px;background:var(--blue-lt);border:1px solid var(--blue-md);border-radius:8px;font-size:11.5px;color:var(--blue-dk);line-height:1.7}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <rect x="0" y="7" width="10" height="19" rx="2" fill="#1A6FD4"/>
+      <rect x="7" y="0" width="12" height="12" rx="2" fill="#54A3E8"/>
+      <circle cx="18" cy="13" r="2" fill="#1A6FD4"/>
+      <line x1="20" y1="13" x2="25" y2="9" stroke="#1A6FD4" stroke-width="1.5"/>
+      <line x1="20" y1="13" x2="25" y2="13" stroke="#1A6FD4" stroke-width="1.5"/>
+      <line x1="20" y1="13" x2="25" y2="17" stroke="#1A6FD4" stroke-width="1.5"/>
+    </svg>
+    <div class="brand">PatientCare <em>AI</em></div>
+    <div class="watson-badge">IBM Watsonx Orchestrate</div>
+  </div>
+
+  <div class="body">
+    <div class="sidebar">
+      <div class="nav-label">Agents</div>
+      <div class="nav-item active" onclick="go('triage',this)"><div class="nav-dot"></div> Symptom Triage</div>
+      <div class="nav-item" onclick="go('routing',this)"><div class="nav-dot"></div> Care Routing</div>
+      <div class="nav-item" onclick="go('appt',this)"><div class="nav-dot"></div> Appointment</div>
+      <div class="nav-label" style="margin-top:10px">System</div>
+      <div class="nav-item" onclick="go('dash',this)"><span style="font-size:13px">📊</span> Dashboard</div>
+    </div>
+
+    <div class="main">
+
+      <!-- TRIAGE -->
+      <div class="panel active" id="panel-triage">
+        <div class="ph">
+          <div class="ph-title"><div class="nav-dot"></div> Symptom Triage Agent</div>
+          <div class="ph-sub">Conversational AI · Assess symptoms · Determine urgency level</div>
+        </div>
+        <div class="chat-scroll" id="chat-triage">
+          <div class="msg">
+            <div class="av ai">AI</div>
+            <div class="bub ai">Hello! I'm the PatientCare AI Triage Agent. I'll help assess your symptoms and guide you to the right level of care.<br><br>Can you describe what you're experiencing today? Please include when it started and how severe it feels (1–10).</div>
+          </div>
+        </div>
+        <div class="qrow">
+          <button class="qbtn" onclick="triageFlow('fever')">🤒 Fever &amp; sore throat</button>
+          <button class="qbtn" onclick="triageFlow('chest')">💓 Chest pain</button>
+          <button class="qbtn" onclick="triageFlow('head')">🧠 Persistent headache</button>
+          <button class="qbtn" onclick="triageFlow('stomach')">🤢 Stomach pain &amp; nausea</button>
+        </div>
+        <div class="irow">
+          <textarea class="cinput" id="ti" rows="1" placeholder="Describe your symptoms..."></textarea>
+          <button class="sbtn" onclick="triageManual()">Send</button>
+        </div>
+      </div>
+
+      <!-- ROUTING -->
+      <div class="panel" id="panel-routing">
+        <div class="ph">
+          <div class="ph-title"><div class="nav-dot"></div> Care Routing Agent</div>
+          <div class="ph-sub">Select your situation · AI routes you to the right care pathway</div>
+        </div>
+        <div class="route-scroll">
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Select the option that best describes your situation:</p>
+          <div class="route-grid">
+            <div class="rcard" onclick="route('emergency',this)"><div class="rcard-icon">🚨</div><div class="rcard-title">Life-threatening emergency</div><div class="rcard-desc">Chest pain, difficulty breathing, stroke symptoms, severe bleeding</div></div>
+            <div class="rcard" onclick="route('urgent',this)"><div class="rcard-icon">⚡</div><div class="rcard-title">Urgent but not emergency</div><div class="rcard-desc">High fever, bad infection, injury, severe pain — needs same-day care</div></div>
+            <div class="rcard" onclick="route('primary',this)"><div class="rcard-icon">🩺</div><div class="rcard-title">Non-urgent concern</div><div class="rcard-desc">Ongoing issue, mild symptoms, follow-up, general health check</div></div>
+            <div class="rcard" onclick="route('chronic',this)"><div class="rcard-icon">♻️</div><div class="rcard-title">Chronic condition management</div><div class="rcard-desc">Diabetes, hypertension, asthma — ongoing specialist or care team</div></div>
+            <div class="rcard" onclick="route('telehealth',this)"><div class="rcard-icon">💻</div><div class="rcard-title">Minor / can do telehealth</div><div class="rcard-desc">Rash, cold, mild UTI, prescription refill, general questions</div></div>
+            <div class="rcard" onclick="route('selfcare',this)"><div class="rcard-icon">🏠</div><div class="rcard-title">Self-care guidance</div><div class="rcard-desc">Minor cuts, common cold, mild headache — home treatment tips</div></div>
+          </div>
+          <div class="route-result" id="route-result"></div>
+        </div>
+      </div>
+
+      <!-- APPOINTMENT -->
+      <div class="panel" id="panel-appt">
+        <div class="ph">
+          <div class="ph-title"><div class="nav-dot"></div> Appointment Scheduling Agent</div>
+          <div class="ph-sub">AI-assisted booking · Smart slot allocation based on urgency</div>
+        </div>
+        <div class="appt-scroll">
+          <div class="appt-steps">
+            <div class="step-item active" id="step1">1 · Patient Info</div>
+            <div class="step-item" id="step2">2 · Visit Details</div>
+            <div class="step-item" id="step3">3 · Confirmation</div>
+          </div>
+          <div id="appt-step1">
+            <div class="form-grid">
+              <div class="fld"><label>First name</label><input id="fn" placeholder="Jane"/></div>
+              <div class="fld"><label>Last name</label><input id="ln" placeholder="Doe"/></div>
+              <div class="fld"><label>Date of birth</label><input id="dob" type="date"/></div>
+              <div class="fld"><label>Phone number</label><input id="ph" placeholder="(555) 000-0000"/></div>
+            </div>
+            <button class="pbtn" onclick="apptStep2()">Continue →</button>
+          </div>
+          <div id="appt-step2" style="display:none">
+            <div class="form-grid">
+              <div class="fld"><label>Specialty</label>
+                <select id="spec"><option>General Practice</option><option>Cardiology</option><option>Neurology</option><option>Orthopedics</option><option>Dermatology</option><option>Pediatrics</option></select>
+              </div>
+              <div class="fld"><label>Urgency</label>
+                <select id="urg"><option>Routine (within 2 weeks)</option><option>Soon (within 3 days)</option><option>Urgent (within 24 hours)</option></select>
+              </div>
+              <div class="fld"><label>Preferred date</label><input id="pdate" type="date"/></div>
+              <div class="fld"><label>Preferred time</label>
+                <select id="ptime"><option>Morning (8am–12pm)</option><option>Afternoon (12–5pm)</option><option>No preference</option></select>
+              </div>
+            </div>
+            <button class="pbtn" onclick="apptConfirm()">Book Appointment →</button>
+          </div>
+          <div class="confirm-card" id="confirm-card"></div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div class="panel" id="panel-dash">
+        <div class="ph">
+          <div class="ph-title">📊 System Dashboard</div>
+          <div class="ph-sub">PatientCare AI · IBM SkillsBuild Phase 1 MVP</div>
+        </div>
+        <div class="dash-scroll">
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-lbl">Active agents</div><div class="stat-val">3</div></div>
+            <div class="stat-card"><div class="stat-lbl">Triages run</div><div class="stat-val" id="d-triage">0</div></div>
+            <div class="stat-card"><div class="stat-lbl">Appts booked</div><div class="stat-val" id="d-appt">0</div></div>
+          </div>
+          <div class="agent-list">
+            <div class="agent-row"><div class="agent-icon">🩺</div><div class="agent-info"><div class="agent-name">Symptom Triage Agent</div><div class="agent-desc">Conversational intake → severity scoring → care urgency determination</div></div><div class="agent-status">Active</div></div>
+            <div class="agent-row"><div class="agent-icon">🔀</div><div class="agent-info"><div class="agent-name">Care Routing Agent</div><div class="agent-desc">Condition → pathway decision → ER / urgent care / telehealth / GP / self-care</div></div><div class="agent-status">Active</div></div>
+            <div class="agent-row"><div class="agent-icon">📅</div><div class="agent-info"><div class="agent-name">Appointment Scheduling Agent</div><div class="agent-desc">Patient intake → provider matching → slot allocation → confirmation</div></div><div class="agent-status">Active</div></div>
+          </div>
+          <div class="ibm-note">
+            <strong>IBM SkillsBuild Submission — Team PatientCare AI · Phase 1</strong><br>
+            Built on IBM Watsonx Orchestrate. Each agent represents a discrete AI skill connected via the orchestration layer. Agents share patient context through a session object to enable handoff between triage → routing → scheduling.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const counters={triage:0,appt:0};
+function go(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+const triageScripts={
+  fever:{steps:[
+    {u:"I have a fever of 101°F and a sore throat since yesterday.",ai:"Thank you. A few follow-up questions:\n• How severe is your sore throat on a scale of 1–10?\n• Any difficulty swallowing or breathing?\n• Are you experiencing body aches or chills?"},
+    {u:"Sore throat is about 6/10. A bit hard to swallow. Mild chills.",ai:"Based on your symptoms, here is my assessment:\n\n<span class='severity-pill sev-mod'>Severity: Moderate</span>\n\nYour symptoms are consistent with a possible bacterial throat infection (e.g., strep) or viral upper respiratory infection.\n\n<strong>Recommended action:</strong> Schedule an in-person visit with your primary care physician within 24–48 hours. A rapid strep test may be needed. In the meantime, rest, stay hydrated, and use OTC pain relievers as needed.\n\n<em>⚠️ Seek immediate care if breathing becomes difficult or fever exceeds 103°F.</em>"}
+  ]},
+  chest:{steps:[
+    {u:"I'm having chest pain and some shortness of breath.",ai:"This requires urgent attention. A few critical questions:\n• Is the pain sharp, pressure-like, or burning?\n• Does it radiate to your arm, neck, or jaw?\n• How long has this been going on?"},
+    {u:"It's a pressure feeling. Started 20 minutes ago. No radiation.",ai:"<span class='severity-pill sev-high'>Severity: High</span>\n\nChest pressure lasting 20 minutes is a serious warning sign that must be evaluated immediately.\n\n<strong>Recommended action:</strong> Call 911 or go to the nearest Emergency Room right now. Do not drive yourself. This could indicate a cardiac event and requires immediate diagnostic testing.\n\n<em>⚠️ Do not wait. Time-sensitive conditions require immediate response.</em>"}
+  ]},
+  head:{steps:[
+    {u:"I've had a persistent headache for 3 days now.",ai:"I'm sorry to hear that. Let me ask a few more questions:\n• Where is the pain located (forehead, temples, back of head)?\n• Is it constant or does it come and go?\n• Any nausea, vision changes, or light sensitivity?"},
+    {u:"It's mostly in my temples, comes and goes. Mild light sensitivity.",ai:"<span class='severity-pill sev-mod'>Severity: Moderate</span>\n\nYour symptoms suggest a tension-type or migraine headache. Three days duration with light sensitivity warrants evaluation.\n\n<strong>Recommended action:</strong> Schedule an appointment with your primary care doctor within 1–3 days. Keep a headache diary noting triggers, duration, and severity.\n\n<em>⚠️ Seek immediate care if headache is sudden and severe, or accompanied by fever and stiff neck.</em>"}
+  ]},
+  stomach:{steps:[
+    {u:"I have stomach pain and nausea since this morning.",ai:"Thank you for letting me know. A few questions:\n• Where exactly is the pain — upper abdomen, lower, or all over?\n• Have you vomited? Any fever?\n• Did you eat anything unusual recently?"},
+    {u:"Lower right side pain. No vomiting. No fever. No unusual food.",ai:"<span class='severity-pill sev-high'>Severity: High</span>\n\nLower right abdominal pain is a flag for appendicitis, which requires prompt medical evaluation.\n\n<strong>Recommended action:</strong> Go to Urgent Care or the Emergency Room today. Do not eat or drink until evaluated. Do not take pain relievers before being seen.\n\n<em>⚠️ If pain becomes severe, you develop fever, or the abdomen becomes rigid, call 911 immediately.</em>"}
+  ]}
+};
+
+let triageState={};
+function triageFlow(key){
+  const script=triageScripts[key];
+  triageState={key,step:0,script};
+  const area=document.getElementById('chat-triage');
+  addMsg(area,'u',script.steps[0].u);
+  setTimeout(()=>{addMsg(area,'ai',script.steps[0].ai);triageState.step=1;counters.triage++;document.getElementById('d-triage').textContent=counters.triage;},600);
+}
+function addMsg(area,role,text){
+  const d=document.createElement('div');
+  d.className='msg'+(role==='u'?' u':'');
+  d.innerHTML=`<div class="av ${role}">${role==='u'?'You':'AI'}</div><div class="bub ${role}">${text.replace(/\n/g,'<br>')}</div>`;
+  area.appendChild(d);area.scrollTop=area.scrollHeight;
+}
+function triageManual(){
+  const input=document.getElementById('ti');
+  const text=input.value.trim();if(!text)return;input.value='';
+  const area=document.getElementById('chat-triage');
+  if(triageState.step===1&&triageState.script){
+    addMsg(area,'u',text);
+    setTimeout(()=>{addMsg(area,'ai',triageState.script.steps[1].ai);triageState={};},700);
+  } else {
+    addMsg(area,'u',text);
+    setTimeout(()=>{addMsg(area,'ai',"Thank you for sharing that. To give you the best guidance, could you tell me:\n• On a scale of 1–10, how severe are your symptoms?\n• How long have you been experiencing this?\n• Any other symptoms alongside this?");triageState={step:0,custom:true};counters.triage++;document.getElementById('d-triage').textContent=counters.triage;},600);
+  }
+}
+document.getElementById('ti').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();triageManual();}});
+
+const routeData={
+  emergency:{sev:'sev-crit',sevLabel:'Critical — Emergency',pathway:'🚨 Emergency Room (911 / ER)',reason:'Your situation indicates a potentially life-threatening condition. Call 911 or have someone take you to the nearest Emergency Room immediately.',next:'Every minute matters. Inform staff of your symptoms upon arrival.'},
+  urgent:{sev:'sev-high',sevLabel:'High — Urgent Care Today',pathway:'⚡ Urgent Care Center',reason:'Your symptoms require same-day medical attention but are not immediately life-threatening. Visit the nearest urgent care center within 2–4 hours.',next:'Bring a list of current medications and your insurance card.'},
+  primary:{sev:'sev-mod',sevLabel:'Moderate — Primary Care',pathway:'🩺 Primary Care / GP Visit',reason:'Your concern is non-urgent and well-suited for a scheduled appointment with your primary care physician within 1–3 business days.',next:'Use the Appointment Scheduling Agent to book your visit now.'},
+  chronic:{sev:'sev-mod',sevLabel:'Moderate — Specialist Care',pathway:'♻️ Specialist / Care Team Referral',reason:'Chronic conditions benefit from coordinated, ongoing care. Schedule with your condition-specific specialist or enroll in a chronic care management program.',next:'PatientCare AI can coordinate referrals and send your care history to your care team.'},
+  telehealth:{sev:'sev-low',sevLabel:'Low — Telehealth',pathway:'💻 Telehealth Consultation',reason:'Your symptoms are appropriate for a virtual visit. A telehealth provider can assess your concern, prescribe if needed, and refer you onward if necessary.',next:'Available 24/7. Average connection time: under 15 minutes.'},
+  selfcare:{sev:'sev-low',sevLabel:'Low — Self-Care',pathway:'🏠 Home Self-Care',reason:'Your symptoms are mild and self-resolving. Recommend rest, hydration, and over-the-counter remedies as appropriate.',next:'Monitor your symptoms. If they worsen or persist beyond 48 hours, use the Triage Agent for re-assessment.'}
+};
+function route(key,el){
+  document.querySelectorAll('.rcard').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  const d=routeData[key];
+  const res=document.getElementById('route-result');
+  res.innerHTML=`<h4>Care Routing Decision</h4><span class="severity-pill ${d.sev}">${d.sevLabel}</span><p><strong>Recommended pathway:</strong> ${d.pathway}</p><br><p>${d.reason}</p><br><p style="font-size:11.5px;color:var(--text2)">Next step: ${d.next}</p>`;
+  res.classList.add('show');res.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function apptStep2(){
+  document.getElementById('appt-step1').style.display='none';
+  document.getElementById('appt-step2').style.display='block';
+  document.getElementById('step1').className='step-item done';
+  document.getElementById('step2').className='step-item active';
+}
+function apptConfirm(){
+  const fn=document.getElementById('fn').value||'Jane';
+  const ln=document.getElementById('ln').value||'Doe';
+  const spec=document.getElementById('spec').value;
+  const urg=document.getElementById('urg').value;
+  const ptime=document.getElementById('ptime').value;
+  const doctors={'General Practice':'Dr. Marcus Webb, MD','Cardiology':'Dr. Priya Nair, MD, FACC','Neurology':'Dr. James Okoro, MD, PhD','Orthopedics':'Dr. Sandra Choi, MD','Dermatology':'Dr. Luis Ferreira, MD, FAAD','Pediatrics':'Dr. Amara Johnson, MD, FAAP'};
+  const slots={'Routine (within 2 weeks)':'May 12, 2025 · 10:30 AM','Soon (within 3 days)':'April 30, 2025 · 2:15 PM','Urgent (within 24 hours)':'April 29, 2025 · 8:45 AM'};
+  const ref='PCR-'+Math.floor(100000+Math.random()*900000);
+  document.getElementById('appt-step2').style.display='none';
+  document.getElementById('step2').className='step-item done';
+  document.getElementById('step3').className='step-item active';
+  const card=document.getElementById('confirm-card');
+  card.innerHTML=`<h4>✅ Appointment Confirmed</h4>
+    <div class="confirm-row"><span class="confirm-key">Patient</span><span class="confirm-val">${fn} ${ln}</span></div>
+    <div class="confirm-row"><span class="confirm-key">Provider</span><span class="confirm-val">${doctors[spec]||'Dr. A. Smith, MD'}</span></div>
+    <div class="confirm-row"><span class="confirm-key">Specialty</span><span class="confirm-val">${spec}</span></div>
+    <div class="confirm-row"><span class="confirm-key">Date &amp; time</span><span class="confirm-val">${slots[urg]}</span></div>
+    <div class="confirm-row"><span class="confirm-key">Location</span><span class="confirm-val">Metro Health Pavilion<br><span style="font-weight:400;font-size:11px">1200 Wellness Blvd, Suite 300</span></span></div>
+    <div class="confirm-row"><span class="confirm-key">Time preference</span><span class="confirm-val">${ptime}</span></div>
+    <div class="ref-badge">Confirmation ref: <strong>${ref}</strong> · A reminder will be sent 24h before your visit</div>`;
+  card.classList.add('show');
+  counters.appt++;document.getElementById('d-appt').textContent=counters.appt;
+}
+</script>
+</body>
+</html>
